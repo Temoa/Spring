@@ -1,0 +1,26 @@
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="cBackground">@android:color/white</item>
+        <item name="cTextColor">@android:color/black</item>
+    </style>
+
+    <style name="DayTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="cBackground">@android:color/white</item>
+        <item name="cTextColor">@android:color/black</item>
+    </style>
+
+    <style name="NightTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/colorPrimary_night</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark_night</item>
+        <item name="colorAccent">@color/colorAccent_night</item>
+        <item name="cBackground">@color/background_night</item>
+        <item name="cTextColor">@color/textColor_night</item>
+    </style>
+</resources>
