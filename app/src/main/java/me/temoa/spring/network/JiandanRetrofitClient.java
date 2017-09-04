@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -59,8 +60,8 @@ public class JiandanRetrofitClient {
         mJiandanApi = retrofit.create(JiandanApi.class);
     }
 
-    public void get(int page, RxCallback<Jiandan> callback) {
-        mJiandanApi.get(page)
+    public Subscription get(int page, RxCallback<Jiandan> callback) {
+        return mJiandanApi.get(page)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(callback);

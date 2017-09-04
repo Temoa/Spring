@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,13 +48,17 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
 
     @Override
     public void onBindViewHolder(final ListHolder holder, int position) {
-        Glide.with(mContext).load(mItems.get(position)).asBitmap().into(holder.iv);
+        Glide.with(mContext)
+                .load(mItems.get(position))
+                .asBitmap()
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .into(holder.iv);
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (mItemClickListener != null)
                     mItemClickListener.onClick(
-                            view,
+                            holder.iv,
                             mItems.get(holder.getAdapterPosition()),
                             holder.getLayoutPosition());
             }

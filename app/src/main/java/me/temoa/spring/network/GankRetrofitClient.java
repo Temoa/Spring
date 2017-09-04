@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -59,8 +60,8 @@ public class GankRetrofitClient {
         mGankApi = retrofit.create(GankApi.class);
     }
 
-    public void get(int page, RxCallback<Gank> callback) {
-        mGankApi.get(page)
+    public Subscription get(int page, RxCallback<Gank> callback) {
+        return mGankApi.get(page)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(callback);
