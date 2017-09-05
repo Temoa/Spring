@@ -48,6 +48,11 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
 
     @Override
     public void onBindViewHolder(final ListHolder holder, int position) {
+        if (mItems.get(position).contains("gif")) {
+            holder.gifIv.setVisibility(View.VISIBLE);
+        } else {
+            holder.gifIv.setVisibility(View.GONE);
+        }
         Glide.with(mContext)
                 .load(mItems.get(position))
                 .asBitmap()
@@ -121,6 +126,11 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
         notifyItemRangeInserted(originalSize, data.size());
     }
 
+    public void reset() {
+        mItems.clear();
+        notifyDataSetChanged();
+    }
+
     public void setItemClickListener(OnItemClickListener listener) {
         mItemClickListener = listener;
     }
@@ -140,10 +150,12 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
     class ListHolder extends RecyclerView.ViewHolder {
 
         private ImageView iv;
+        private ImageView gifIv;
 
         ListHolder(View itemView) {
             super(itemView);
             iv = itemView.findViewById(R.id.item_main_iv);
+            gifIv = itemView.findViewById(R.id.item_main_gif_iv);
         }
     }
 

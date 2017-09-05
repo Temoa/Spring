@@ -2,35 +2,34 @@ package me.temoa.spring;
 
 import android.Manifest;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.GlideDrawableImageViewTarget;
-import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.target.Target;
 import com.github.chrisbanes.photoview.PhotoView;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 
+import me.temoa.spring.util.ThemeUtil;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -44,11 +43,10 @@ import static android.R.attr.path;
 
 public class ImageActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks {
 
-    private static final String TAG = "ImageActivity";
-
     private static final int RC_WRITE_EXTERNAL_STORAGE = 0x01;
 
     private String imageUrl;
+    private AsyncTask<String, Void, File> mSaveTask;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -99,66 +97,83 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         downloadIv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                savePhoto();
+                preSavePhoto();
             }
         });
     }
 
     @AfterPermissionGranted(RC_WRITE_EXTERNAL_STORAGE)
-    private void savePhoto() {
+    private void preSavePhoto() {
         if (imageUrl == null) return;
         String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE};
         if (EasyPermissions.hasPermissions(this, perms)) {
-            Glide.with(this)
-                    .load(imageUrl)
-                    .asBitmap()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .into(mTarget);
+            save();
         } else {
             EasyPermissions.requestPermissions(
                     this, "保存图片需要获取读取外部存储的权限", RC_WRITE_EXTERNAL_STORAGE, perms);
         }
     }
 
-    private final SimpleTarget<Bitmap> mTarget = new SimpleTarget<Bitmap>() {
-        @Override
-        public void onResourceReady(Bitmap resource,
-                                    GlideAnimation<? super Bitmap> glideAnimation) {
-            final File photoFolder = Environment
-                    .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                    .getAbsoluteFile();
+    private void save() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    File glideFile = Glide
+                            .with(ImageActivity.this)
+                            .load(imageUrl)
+                            .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
+                            .get();
 
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
-            String suffix;
-            if (imageUrl.contains("png")) {
-                suffix = ".png";
-            } else {
-                suffix = ".jpg";
-            }
-            String photoName = "Spring-" + formatter.format(Calendar.getInstance().getTime()) + suffix;
+                    if (glideFile == null) return;
 
-            File photoFile = new File(photoFolder, photoName);
-            FileOutputStream fos;
-            try {
-                fos = new FileOutputStream(photoFile);
-                if (imageUrl.contains("png")) {
-                    resource.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                } else {
-                    resource.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                    final File photoFolder = Environment
+                            .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                            .getAbsoluteFile();
+                    String suffix;
+                    if (imageUrl.contains("png")) {
+                        suffix = ".png";
+                    } else if (imageUrl.contains("gif")) {
+                        suffix = ".gif";
+                    } else {
+                        suffix = ".jpg";
+                    }
+
+                    String photoName = "Spring-" + System.currentTimeMillis() + suffix;
+                    File photoFile = new File(photoFolder, photoName);
+                    FileInputStream fis;
+                    FileOutputStream fos;
+                    fis = new FileInputStream(glideFile);
+                    fos = new FileOutputStream(photoFile);
+
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = fis.read(buffer)) > 0) {
+                        fos.write(buffer, 0, length);
+                    }
+                    fis.close();
+                    fos.close();
+
+                    // 最后通知图库更新
+                    ImageActivity.this.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                            Uri.parse("file://" + path)));
+
+                    Intent savePhotoIntent = new Intent("SAVE_PHOTO");
+                    savePhotoIntent.putExtra("isSucceed", true);
+                    LocalBroadcastManager
+                            .getInstance(ImageActivity.this)
+                            .sendBroadcast(savePhotoIntent);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Intent savePhotoIntent = new Intent("SAVE_PHOTO");
+                    savePhotoIntent.putExtra("isSucceed", false);
+                    LocalBroadcastManager
+                            .getInstance(ImageActivity.this)
+                            .sendBroadcast(savePhotoIntent);
                 }
-                fos.flush();
-                fos.close();
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-
-            // 最后通知图库更新
-            ImageActivity.this.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                    Uri.parse("file://" + path)));
-
-            Toast.makeText(ImageActivity.this, "保存成功", Toast.LENGTH_SHORT).show();
-        }
-    };
+        }).start();
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {

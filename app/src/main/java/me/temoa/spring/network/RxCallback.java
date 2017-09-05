@@ -2,9 +2,11 @@ package me.temoa.spring.network;
 
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.IOException;
 
+import me.temoa.spring.MyApp;
 import retrofit2.adapter.rxjava.HttpException;
 import rx.Subscriber;
 
@@ -36,7 +38,7 @@ public abstract class RxCallback<T> extends Subscriber<T> {
         }
 
         Log.e("RxCallback", "onError() called with: e = [" + e + "]," + errorMsg);
-
+        Toast.makeText(MyApp.getInstance(), "请求失败", Toast.LENGTH_SHORT).show();
         onFinished();
     }
 
