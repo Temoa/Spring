@@ -3,18 +3,17 @@ package me.temoa.spring;
 import android.Manifest;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -34,8 +33,6 @@ import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
 import pub.devrel.easypermissions.EasyPermissions;
 
-import static android.R.attr.path;
-
 /**
  * Created by Lai
  * on 2017/9/4 18:59
@@ -46,7 +43,6 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
     private static final int RC_WRITE_EXTERNAL_STORAGE = 0x01;
 
     private String imageUrl;
-    private AsyncTask<String, Void, File> mSaveTask;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -120,7 +116,7 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
             public void run() {
                 try {
                     File glideFile = Glide
-                            .with(ImageActivity.this)
+                            .with(MyApp.getInstance())
                             .load(imageUrl)
                             .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
                             .get();
@@ -130,6 +126,9 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
                     final File photoFolder = Environment
                             .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
                             .getAbsoluteFile();
+                    if (!photoFolder.exists()) {
+                        photoFolder.mkdirs();
+                    }
                     String suffix;
                     if (imageUrl.contains("png")) {
                         suffix = ".png";
@@ -154,36 +153,47 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
                     fis.close();
                     fos.close();
 
-                    // 最后通知图库更新
-                    ImageActivity.this.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                            Uri.parse("file://" + path)));
+                    // 通知图库更新
+                    Intent intent = new Intent(
+                            Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                            Uri.parse("file://" + photoFile.getAbsolutePath()));
+                    ImageActivity.this.sendBroadcast(intent);
 
-                    Intent savePhotoIntent = new Intent("SAVE_PHOTO");
-                    savePhotoIntent.putExtra("isSucceed", true);
-                    LocalBroadcastManager
-                            .getInstance(ImageActivity.this)
-                            .sendBroadcast(savePhotoIntent);
+                    notifySaveResult(true);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Intent savePhotoIntent = new Intent("SAVE_PHOTO");
-                    savePhotoIntent.putExtra("isSucceed", false);
-                    LocalBroadcastManager
-                            .getInstance(ImageActivity.this)
-                            .sendBroadcast(savePhotoIntent);
+                    notifySaveResult(false);
                 }
             }
         }).start();
     }
 
+    private void notifySaveResult(boolean isSucceed) {
+        final String text;
+        if (isSucceed) {
+            text = "保存成功";
+        } else {
+            text = "保存失败";
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(ImageActivity.this, text, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
     }
 
     @Override
     public void onPermissionsGranted(int requestCode, List<String> perms) {
-
+        if (requestCode == RC_WRITE_EXTERNAL_STORAGE) {
+            preSavePhoto();
+        }
     }
 
     @Override

@@ -12,7 +12,14 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
+        debug {
+            resValue "string", "app_name", "Spring.Debug"
+            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
         release {
+            resValue "string", "app_name", "Spring"
             minifyEnabled true
             shrinkResources true
             zipAlignEnabled true
@@ -41,5 +48,5 @@ dependencies {
     compile 'io.reactivex:rxjava:1.2.0'
     compile 'io.reactivex:rxandroid:1.2.1'
 
-    compile 'pub.devrel:easypermissions:0.4.2'
+    compile 'pub.devrel:easypermissions:1.0.0'
 }
