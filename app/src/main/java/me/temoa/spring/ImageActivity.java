@@ -1,6 +1,7 @@
 package me.temoa.spring;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -41,8 +42,9 @@ import pub.devrel.easypermissions.EasyPermissions;
 public class ImageActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks {
 
     private static final int RC_WRITE_EXTERNAL_STORAGE = 0x01;
+    private static final String EXTRA_NAME_IMAGE_URL = "image_url";
 
-    private String imageUrl;
+    private String mCurImageUrl;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -74,10 +76,10 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         final ProgressBar progressBar = (ProgressBar) findViewById(R.id.image_progressBar);
 
         PhotoView photoView = (PhotoView) findViewById(R.id.image_photoView);
-        imageUrl = getIntent().getStringExtra("image_url");
-        if (imageUrl != null) {
+        mCurImageUrl = getIntent().getStringExtra("image_url");
+        if (mCurImageUrl != null) {
             Glide.with(this)
-                    .load(imageUrl)
+                    .load(mCurImageUrl)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .dontAnimate().into(new GlideDrawableImageViewTarget(photoView) {
                 @Override
@@ -100,7 +102,7 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
 
     @AfterPermissionGranted(RC_WRITE_EXTERNAL_STORAGE)
     private void preSavePhoto() {
-        if (imageUrl == null) return;
+        if (mCurImageUrl == null) return;
         String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE};
         if (EasyPermissions.hasPermissions(this, perms)) {
             save();
@@ -117,7 +119,7 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
                 try {
                     File glideFile = Glide
                             .with(MyApp.getInstance())
-                            .load(imageUrl)
+                            .load(mCurImageUrl)
                             .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
                             .get();
 
@@ -130,9 +132,9 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
                         photoFolder.mkdirs();
                     }
                     String suffix;
-                    if (imageUrl.contains("png")) {
+                    if (mCurImageUrl.contains("png")) {
                         suffix = ".png";
-                    } else if (imageUrl.contains("gif")) {
+                    } else if (mCurImageUrl.contains("gif")) {
                         suffix = ".gif";
                     } else {
                         suffix = ".jpg";
@@ -201,5 +203,11 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         if (EasyPermissions.somePermissionPermanentlyDenied(this, perms)) {
             new AppSettingsDialog.Builder(this).build().show();
         }
+    }
+
+    public static void launch(Context context, String imageUrl) {
+        Intent intent = new Intent(context, ImageActivity.class);
+        intent.putExtra(EXTRA_NAME_IMAGE_URL, imageUrl);
+        context.startActivity(intent);
     }
 }

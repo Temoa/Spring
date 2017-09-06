@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+static def gitVersionCode() {
+    def cmd = "git rev-list HEAD --count"
+    def gitVersion = cmd.execute().text.trim().toInteger()
+    return gitVersion
+}
+
 android {
     compileSdkVersion 26
     buildToolsVersion "26.0.1"
@@ -8,12 +14,13 @@ android {
         minSdkVersion 21
         targetSdkVersion 26
         versionCode 1
-        versionName "0.0.1"
+        versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         debug {
             resValue "string", "app_name", "Spring.Debug"
+            applicationIdSuffix ".debug"
             zipAlignEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -24,6 +31,14 @@ android {
             shrinkResources true
             zipAlignEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    applicationVariants.all { variant ->
+        if (variant.buildType.name == "release") {
+            variant.mergedFlavor.versionCode = gitVersionCode()
+            // 这里去修改release的版本名字
+            variant.mergedFlavor.versionName = "0.0.2"
         }
     }
 }

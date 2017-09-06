@@ -3,7 +3,6 @@ package me.temoa.spring;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
-import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
@@ -94,6 +93,16 @@ public class MainActivity extends AppCompatActivity {
             t.setTextSize(24.f);
             t.setTypeface(typeface);
         }
+        mToolbar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mRecyclerView != null) {
+                    GridLayoutManager layoutManager = (GridLayoutManager) mRecyclerView.getLayoutManager();
+                    int curPosition = layoutManager.findFirstVisibleItemPosition();
+                    if (curPosition > 3) mRecyclerView.smoothScrollToPosition(0);
+                }
+            }
+        });
 
         mContainer = (LinearLayout) findViewById(R.id.main_container);
 
@@ -106,9 +115,7 @@ public class MainActivity extends AppCompatActivity {
         mAdapter.setItemClickListener(new MainAdapter.OnItemClickListener() {
             @Override
             public void onClick(View v, String url, int position) {
-                Intent intent = new Intent(MainActivity.this, ImageActivity.class);
-                intent.putExtra("image_url", url);
-                startActivity(intent);
+                ImageActivity.launch(MainActivity.this, url);
             }
         });
         mAdapter.openLoadMore();
