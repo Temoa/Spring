@@ -56,7 +56,8 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
         Glide.with(mContext)
                 .load(mItems.get(position))
                 .asBitmap()
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .thumbnail(0.1F)
+                .diskCacheStrategy(DiskCacheStrategy.SOURCE)
                 .into(holder.iv);
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override

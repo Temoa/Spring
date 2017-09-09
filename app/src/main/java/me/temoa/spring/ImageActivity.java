@@ -80,15 +80,16 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         if (mCurImageUrl != null) {
             Glide.with(this)
                     .load(mCurImageUrl)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .dontAnimate().into(new GlideDrawableImageViewTarget(photoView) {
-                @Override
-                public void onResourceReady(GlideDrawable resource,
-                                            GlideAnimation<? super GlideDrawable> animation) {
-                    super.onResourceReady(resource, animation);
-                    progressBar.setVisibility(View.GONE);
-                }
-            });
+                    .thumbnail(0.1F)
+                    .diskCacheStrategy(DiskCacheStrategy.SOURCE)
+                    .into(new GlideDrawableImageViewTarget(photoView) {
+                        @Override
+                        public void onResourceReady(GlideDrawable resource,
+                                                    GlideAnimation<? super GlideDrawable> animation) {
+                            super.onResourceReady(resource, animation);
+                            progressBar.setVisibility(View.GONE);
+                        }
+                    });
         }
 
         ImageView downloadIv = (ImageView) findViewById(R.id.image_download);
