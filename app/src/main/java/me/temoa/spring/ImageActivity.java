@@ -4,15 +4,20 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.FileProvider;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -56,6 +61,17 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
     private ArrayList<String> mImageList;
     private int mIndex;
 
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.what == 1) {
+                share((File) msg.obj);
+                return;
+            }
+            super.handleMessage(msg);
+        }
+    };
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,6 +81,15 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         setContentView(R.layout.activity_image);
 
         initViews();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mHandler != null) {
+            mHandler.removeCallbacksAndMessages(null);
+            mHandler = null;
+        }
     }
 
     private void initViews() {
@@ -155,10 +180,51 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
                 preSavePhoto();
             }
         });
+
+        ImageView shareIv = (ImageView) findViewById(R.id.image_share);
+        shareIv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                share();
+            }
+        });
     }
 
     private void setIndexTitle() {
         setTitle((mIndex + 1) + "/" + mImageList.size());
+    }
+
+    private void share() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    File glideFile = Glide.with(MyApp.getInstance()).load(mCurImageUrl)
+                            .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
+                            .get();
+                    Message message = Message.obtain();
+                    message.obj = glideFile;
+                    message.what = 1;
+                    mHandler.sendMessage(message);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+    private void share(File photoFile) {
+        Intent shareIntent = new Intent();
+        Uri imageUri;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            imageUri = FileProvider.getUriForFile(this, "me.temoa.spring.fileProvider", photoFile);
+        } else {
+            imageUri = Uri.fromFile(photoFile);
+        }
+        shareIntent.setAction(Intent.ACTION_SEND);
+        shareIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
+        shareIntent.setType("image/*");
+        startActivity(Intent.createChooser(shareIntent, "分享到"));
     }
 
     @AfterPermissionGranted(RC_EXTERNAL_STORAGE)
