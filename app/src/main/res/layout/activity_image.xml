@@ -8,11 +8,10 @@
     android:background="@color/background_night"
     android:orientation="vertical">
 
-    <com.github.chrisbanes.photoview.PhotoView
-        android:id="@+id/image_photoView"
+    <android.support.v4.view.ViewPager
+        android:id="@+id/image_viewPager"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitCenter"/>
+        android:layout_height="match_parent"/>
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/image_toolBar"
@@ -31,12 +30,5 @@
         android:background="@drawable/shape_image_download_bg"
         android:scaleType="centerInside"
         android:src="@drawable/ic_image_download_24dp"/>
-
-    <ProgressBar
-        android:id="@+id/image_progressBar"
-        style="?android:attr/progressBarStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"/>
 
 </FrameLayout>

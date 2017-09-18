@@ -10,7 +10,8 @@
         android:id="@+id/item_main_iv"
         android:layout_width="match_parent"
         android:layout_height="220dp"
-        android:scaleType="centerCrop"/>
+        android:scaleType="centerCrop"
+        android:transitionName="image"/>
 
     <ImageView
         android:id="@+id/item_main_gif_iv"
@@ -18,7 +19,7 @@
         android:layout_height="22dp"
         android:layout_gravity="bottom|end"
         android:layout_margin="4dp"
-        android:scaleType="centerCrop"
         android:background="@drawable/shape_image_download_bg"
+        android:scaleType="centerCrop"
         android:src="@drawable/ic_image_gif_24dp"/>
 </FrameLayout>

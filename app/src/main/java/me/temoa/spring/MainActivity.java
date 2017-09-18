@@ -3,6 +3,7 @@ package me.temoa.spring;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
@@ -115,7 +116,8 @@ public class MainActivity extends AppCompatActivity {
         mAdapter.setItemClickListener(new MainAdapter.OnItemClickListener() {
             @Override
             public void onClick(View v, String url, int position) {
-                ImageActivity.launch(MainActivity.this, url);
+                ImageActivity.launch(MainActivity.this, url,
+                        (ArrayList<String>) mAdapter.getAllData(), position);
             }
         });
         mAdapter.openLoadMore();
@@ -391,5 +393,13 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1 && resultCode == RESULT_OK) {
+            mRecyclerView.scrollToPosition(data.getIntExtra("index", 0));
+        }
     }
 }

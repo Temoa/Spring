@@ -10,7 +10,6 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,8 +55,7 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
         Glide.with(mContext)
                 .load(mItems.get(position))
                 .asBitmap()
-                .thumbnail(0.1F)
-                .diskCacheStrategy(DiskCacheStrategy.SOURCE)
+                .dontAnimate()
                 .into(holder.iv);
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -127,7 +125,12 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
         notifyItemRangeInserted(originalSize, data.size());
     }
 
+    public List<String> getAllData() {
+        return mItems;
+    }
+
     public void reset() {
+        if (mItems == null || mItems.size() == 0) return;
         mItems.clear();
         notifyDataSetChanged();
     }

@@ -1,17 +1,22 @@
 package me.temoa.spring;
 
 import android.Manifest;
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -27,6 +32,7 @@ import com.github.chrisbanes.photoview.PhotoView;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import me.temoa.spring.util.ThemeUtil;
@@ -41,10 +47,14 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 public class ImageActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks {
 
-    private static final int RC_WRITE_EXTERNAL_STORAGE = 0x01;
+    private static final int RC_EXTERNAL_STORAGE = 0x01;
     private static final String EXTRA_NAME_IMAGE_URL = "image_url";
+    private static final String EXTRA_NAME_IMAGE_LIST = "image_list";
+    private static final String EXTRA_NAME_IMAGE_INDEX = "image_index";
 
     private String mCurImageUrl;
+    private ArrayList<String> mImageList;
+    private int mIndex;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,34 +73,80 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                supportFinishAfterTransition();
+                onBackPressed();
             }
         });
 
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setDisplayShowTitleEnabled(false);
         }
 
-        final ProgressBar progressBar = (ProgressBar) findViewById(R.id.image_progressBar);
+        mCurImageUrl = getIntent().getStringExtra(EXTRA_NAME_IMAGE_URL);
+        mImageList = getIntent().getStringArrayListExtra(EXTRA_NAME_IMAGE_LIST);
+        mIndex = getIntent().getIntExtra(EXTRA_NAME_IMAGE_INDEX, 0);
 
-        PhotoView photoView = (PhotoView) findViewById(R.id.image_photoView);
-        mCurImageUrl = getIntent().getStringExtra("image_url");
-        if (mCurImageUrl != null) {
-            Glide.with(this)
-                    .load(mCurImageUrl)
-                    .thumbnail(0.1F)
-                    .diskCacheStrategy(DiskCacheStrategy.SOURCE)
-                    .into(new GlideDrawableImageViewTarget(photoView) {
-                        @Override
-                        public void onResourceReady(GlideDrawable resource,
-                                                    GlideAnimation<? super GlideDrawable> animation) {
-                            super.onResourceReady(resource, animation);
-                            progressBar.setVisibility(View.GONE);
-                        }
-                    });
-        }
+        ViewPager viewPager = (ViewPager) findViewById(R.id.image_viewPager);
+        viewPager.setAdapter(new PagerAdapter() {
+            @Override
+            public int getCount() {
+                return mImageList.size();
+            }
+
+            @Override
+            public boolean isViewFromObject(View view, Object object) {
+                return view == object;
+            }
+
+            @Override
+            public Object instantiateItem(ViewGroup container, int position) {
+                FrameLayout view = (FrameLayout) LayoutInflater.from(container.getContext())
+                        .inflate(R.layout.item_view_pager, null);
+                PhotoView photoView = view.findViewById(R.id.image_item_photoView);
+                final ProgressBar progressBar = view.findViewById(R.id.image_item_progressBar);
+                Glide.with(container.getContext())
+                        .load(mImageList.get(position))
+                        .thumbnail(0.1F)
+                        .diskCacheStrategy(DiskCacheStrategy.SOURCE)
+                        .into(new GlideDrawableImageViewTarget(photoView) {
+                            @Override
+                            public void onResourceReady(GlideDrawable resource,
+                                                        GlideAnimation<? super GlideDrawable> animation) {
+                                super.onResourceReady(resource, animation);
+                                progressBar.setVisibility(View.GONE);
+                            }
+                        });
+                container.addView(view);
+                return view;
+            }
+
+            @Override
+            public void destroyItem(ViewGroup container, int position, Object object) {
+                container.removeView((View) object);
+            }
+        });
+
+        viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                mIndex = position;
+                mCurImageUrl = mImageList.get(position);
+                setIndexTitle();
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
+            }
+        });
+
+        viewPager.setCurrentItem(mIndex, false);
+        setIndexTitle();
 
         ImageView downloadIv = (ImageView) findViewById(R.id.image_download);
         downloadIv.setOnClickListener(new View.OnClickListener() {
@@ -101,15 +157,19 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         });
     }
 
-    @AfterPermissionGranted(RC_WRITE_EXTERNAL_STORAGE)
+    private void setIndexTitle() {
+        setTitle((mIndex + 1) + "/" + mImageList.size());
+    }
+
+    @AfterPermissionGranted(RC_EXTERNAL_STORAGE)
     private void preSavePhoto() {
         if (mCurImageUrl == null) return;
-        String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE};
+        String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
         if (EasyPermissions.hasPermissions(this, perms)) {
             save();
         } else {
             EasyPermissions.requestPermissions(
-                    this, "保存图片需要获取读取外部存储的权限", RC_WRITE_EXTERNAL_STORAGE, perms);
+                    this, "保存图片需要获取读取外部存储的权限", RC_EXTERNAL_STORAGE, perms);
         }
     }
 
@@ -194,7 +254,7 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
 
     @Override
     public void onPermissionsGranted(int requestCode, List<String> perms) {
-        if (requestCode == RC_WRITE_EXTERNAL_STORAGE) {
+        if (requestCode == RC_EXTERNAL_STORAGE) {
             preSavePhoto();
         }
     }
@@ -206,9 +266,19 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         }
     }
 
-    public static void launch(Context context, String imageUrl) {
-        Intent intent = new Intent(context, ImageActivity.class);
+    public static void launch(Activity activity, String imageUrl, ArrayList<String> imageList, int position) {
+        Intent intent = new Intent(activity, ImageActivity.class);
         intent.putExtra(EXTRA_NAME_IMAGE_URL, imageUrl);
-        context.startActivity(intent);
+        intent.putStringArrayListExtra(EXTRA_NAME_IMAGE_LIST, imageList);
+        intent.putExtra(EXTRA_NAME_IMAGE_INDEX, position);
+        activity.startActivityForResult(intent, 1);
+    }
+
+    @Override
+    public void onBackPressed() {
+        Intent intent = new Intent();
+        intent.putExtra("index", mIndex);
+        setResult(RESULT_OK, intent);
+        super.onBackPressed();
     }
 }
