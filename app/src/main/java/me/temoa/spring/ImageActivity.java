@@ -1,14 +1,13 @@
 package me.temoa.spring;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
@@ -17,7 +16,6 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,6 +38,7 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import me.temoa.spring.adapter.ImagePagerAdapter;
 import me.temoa.spring.util.ThemeUtil;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
@@ -61,17 +60,6 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
     private ArrayList<String> mImageList;
     private int mIndex;
 
-    private Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.what == 1) {
-                share((File) msg.obj);
-                return;
-            }
-            super.handleMessage(msg);
-        }
-    };
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,15 +71,7 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         initViews();
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (mHandler != null) {
-            mHandler.removeCallbacksAndMessages(null);
-            mHandler = null;
-        }
-    }
-
+    @SuppressLint("InflateParams")
     private void initViews() {
         Toolbar toolbar = (Toolbar) findViewById(R.id.image_toolBar);
         setSupportActionBar(toolbar);
@@ -112,45 +92,9 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         mIndex = getIntent().getIntExtra(EXTRA_NAME_IMAGE_INDEX, 0);
 
         ViewPager viewPager = (ViewPager) findViewById(R.id.image_viewPager);
-        viewPager.setAdapter(new PagerAdapter() {
-            @Override
-            public int getCount() {
-                return mImageList.size();
-            }
-
-            @Override
-            public boolean isViewFromObject(View view, Object object) {
-                return view == object;
-            }
-
-            @Override
-            public Object instantiateItem(ViewGroup container, int position) {
-                FrameLayout view = (FrameLayout) LayoutInflater.from(container.getContext())
-                        .inflate(R.layout.item_view_pager, null);
-                PhotoView photoView = view.findViewById(R.id.image_item_photoView);
-                final ProgressBar progressBar = view.findViewById(R.id.image_item_progressBar);
-                Glide.with(container.getContext())
-                        .load(mImageList.get(position))
-                        .thumbnail(0.1F)
-                        .diskCacheStrategy(DiskCacheStrategy.SOURCE)
-                        .into(new GlideDrawableImageViewTarget(photoView) {
-                            @Override
-                            public void onResourceReady(GlideDrawable resource,
-                                                        GlideAnimation<? super GlideDrawable> animation) {
-                                super.onResourceReady(resource, animation);
-                                progressBar.setVisibility(View.GONE);
-                            }
-                        });
-                container.addView(view);
-                return view;
-            }
-
-            @Override
-            public void destroyItem(ViewGroup container, int position, Object object) {
-                container.removeView((View) object);
-            }
-        });
-
+        ImagePagerAdapter adapter = new ImagePagerAdapter();
+        adapter.setData(mImageList);
+        viewPager.setAdapter(adapter);
         viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
@@ -199,13 +143,16 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
             @Override
             public void run() {
                 try {
-                    File glideFile = Glide.with(MyApp.getInstance()).load(mCurImageUrl)
-                            .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
+                    final File glideFile = Glide.with(MyApp.getInstance())
+                            .load(mCurImageUrl)//
+                            .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)//
                             .get();
-                    Message message = Message.obtain();
-                    message.obj = glideFile;
-                    message.what = 1;
-                    mHandler.sendMessage(message);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            share(glideFile);
+                        }
+                    });
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -256,7 +203,7 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
                             .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
                             .getAbsoluteFile();
                     if (!photoFolder.exists()) {
-                        photoFolder.mkdirs();
+                        if (!photoFolder.mkdirs()) return;
                     }
                     String suffix;
                     if (mCurImageUrl.contains("png")) {
