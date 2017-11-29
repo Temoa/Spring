@@ -6,24 +6,32 @@ import android.widget.Toast;
 
 import java.io.IOException;
 
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
 import me.temoa.spring.MyApp;
-import retrofit2.adapter.rxjava.HttpException;
-import rx.Subscriber;
+import retrofit2.HttpException;
 
 /**
  * Created by Temoa
  * on 2017/2/6 20:39
  */
 
-public abstract class RxCallback<T> extends Subscriber<T> {
+public abstract class RxCallback<T> implements Observer<T> {
 
     public abstract void onSuccess(T t);
 
     public abstract void onFinished();
 
+    public abstract void getDisposable(Disposable d);
+
     @Override
-    public void onCompleted() {
-        onFinished();
+    public void onSubscribe(Disposable d) {
+        getDisposable(d);
+    }
+
+    @Override
+    public void onNext(T t) {
+        onSuccess(t);
     }
 
     @Override
@@ -43,7 +51,7 @@ public abstract class RxCallback<T> extends Subscriber<T> {
     }
 
     @Override
-    public void onNext(T t) {
-        onSuccess(t);
+    public void onComplete() {
+        onFinished();
     }
 }

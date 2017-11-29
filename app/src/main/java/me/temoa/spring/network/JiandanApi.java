@@ -1,9 +1,9 @@
 package me.temoa.spring.network;
 
+import io.reactivex.Observable;
 import me.temoa.spring.bean.Jiandan;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
-import rx.Observable;
 
 /**
  * Created by Lai

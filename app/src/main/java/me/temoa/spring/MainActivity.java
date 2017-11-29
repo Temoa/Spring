@@ -31,6 +31,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.reactivex.disposables.Disposable;
 import me.temoa.spring.adapter.MainAdapter;
 import me.temoa.spring.bean.Gank;
 import me.temoa.spring.bean.Jiandan;
@@ -39,11 +40,8 @@ import me.temoa.spring.network.JiandanRetrofitClient;
 import me.temoa.spring.network.RxCallback;
 import me.temoa.spring.util.GateUtil;
 import me.temoa.spring.util.ThemeUtil;
-import rx.Subscription;
 
 public class MainActivity extends AppCompatActivity {
-
-    private static final String TAG = "MainActivity";
 
     private Toolbar mToolbar;
     private LinearLayout mContainer;
@@ -51,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private MainAdapter mAdapter;
 
     private int page = 1;
-    private Subscription dataSubscription;
+    private Disposable dataDisposable;
 
     private boolean isNewWorld;
     private boolean isNight;
@@ -78,14 +76,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (dataSubscription != null && !dataSubscription.isUnsubscribed()) {
-            dataSubscription.unsubscribe();
-            dataSubscription = null;
+        if (dataDisposable != null && !dataDisposable.isDisposed()) {
+            dataDisposable.dispose();
+            dataDisposable = null;
         }
     }
 
     private void initViews() {
-        mToolbar = (Toolbar) findViewById(R.id.main_toolBar);
+        mToolbar = findViewById(R.id.main_toolBar);
         setSupportActionBar(mToolbar);
         View titleTv = mToolbar.getChildAt(0);
         if (titleTv instanceof TextView) {
@@ -105,9 +103,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        mContainer = (LinearLayout) findViewById(R.id.main_container);
+        mContainer = findViewById(R.id.main_container);
 
-        mRecyclerView = (RecyclerView) findViewById(R.id.main_recyclerView);
+        mRecyclerView = findViewById(R.id.main_recyclerView);
         mRecyclerView.setVisibility(View.INVISIBLE);
         mRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
@@ -157,8 +155,13 @@ public class MainActivity extends AppCompatActivity {
             public void onFinished() {
 
             }
+
+            @Override
+            public void getDisposable(Disposable d) {
+                dataDisposable = d;
+            }
         };
-        dataSubscription = GankRetrofitClient.getInstance().get(page, callback);
+        GankRetrofitClient.getInstance().get(page, callback);
     }
 
     private void getJiandanData(final boolean isLoadMore) {
@@ -187,9 +190,13 @@ public class MainActivity extends AppCompatActivity {
             public void onFinished() {
 
             }
-        };
 
-        dataSubscription = JiandanRetrofitClient.getInstance().get(page, callback);
+            @Override
+            public void getDisposable(Disposable d) {
+                dataDisposable = d;
+            }
+        };
+        JiandanRetrofitClient.getInstance().get(page, callback);
     }
 
     private void animateToolbar() {

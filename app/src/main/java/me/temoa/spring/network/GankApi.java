@@ -1,9 +1,9 @@
 package me.temoa.spring.network;
 
+import io.reactivex.Observable;
 import me.temoa.spring.bean.Gank;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
-import rx.Observable;
 
 /**
  * Created by Lai

@@ -3,15 +3,15 @@ package me.temoa.spring.network;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 import me.temoa.spring.bean.Gank;
 import okhttp3.ConnectionSpec;
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
-import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
 
 /**
  * Created by Temoa
@@ -52,7 +52,7 @@ public class GankRetrofitClient {
 
         Retrofit retrofit = new Retrofit.Builder()
                 .client(builder.build())
-                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
                 .baseUrl("http://gank.io/api/")
                 .build();
@@ -60,8 +60,8 @@ public class GankRetrofitClient {
         mGankApi = retrofit.create(GankApi.class);
     }
 
-    public Subscription get(int page, RxCallback<Gank> callback) {
-        return mGankApi.get(page)
+    public void get(int page, RxCallback<Gank> callback) {
+        mGankApi.get(page)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(callback);
