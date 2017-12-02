@@ -1,7 +1,9 @@
 package me.temoa.spring.adapter;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.ViewCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,15 +28,32 @@ import me.temoa.spring.R;
 
 public class ImagePagerAdapter extends PagerAdapter {
 
-    private List<String> items;
+    private Context mContext;
+    private LayoutInflater mLayoutInflater;
+    private List<String> mItems;
+    private OnItemClickListener mItemClickListener;
+    private OnItemChildClickListener mItemChildClickListener;
+
+    public void setItemClickListener(OnItemClickListener itemClickListener) {
+        this.mItemClickListener = itemClickListener;
+    }
+
+    public void setItemChildClickListener(OnItemChildClickListener itemChildClickListener) {
+        mItemChildClickListener = itemChildClickListener;
+    }
 
     public void setData(List<String> data) {
-        this.items = data;
+        this.mItems = data;
+    }
+
+    public ImagePagerAdapter(Context context) {
+        mContext = context;
+        mLayoutInflater = LayoutInflater.from(context);
     }
 
     @Override
     public int getCount() {
-        return items == null ? 0 : items.size();
+        return mItems == null ? 0 : mItems.size();
     }
 
     @Override
@@ -45,12 +64,14 @@ public class ImagePagerAdapter extends PagerAdapter {
     @Override
     @SuppressLint("InflateParams")
     public Object instantiateItem(ViewGroup container, int position) {
-        FrameLayout view = (FrameLayout) LayoutInflater.from(container.getContext()).inflate(R.layout.item_view_pager, null);
+        FrameLayout view = (FrameLayout) mLayoutInflater.inflate(R.layout.item_view_pager, null);
         final PhotoView photoView = view.findViewById(R.id.image_item_photoView);
+        ViewCompat.setTransitionName(photoView, mItems.get(position));
         final ProgressBar progressBar = view.findViewById(R.id.image_item_progressBar);
-        Glide.with(container.getContext())
-                .load(items.get(position))
+        Glide.with(mContext)
+                .load(mItems.get(position))
                 .thumbnail(0.1F)
+                .dontAnimate()
                 .diskCacheStrategy(DiskCacheStrategy.SOURCE)
                 .into(new GlideDrawableImageViewTarget(photoView) {
                     @Override
@@ -60,6 +81,22 @@ public class ImagePagerAdapter extends PagerAdapter {
                         progressBar.setVisibility(View.GONE);
                     }
                 });
+        if (mItemClickListener != null) {
+            photoView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mItemClickListener.onItemClick();
+                }
+            });
+        }
+        if (mItemChildClickListener != null) {
+            photoView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    return mItemChildClickListener.onItemChildClick(v);
+                }
+            });
+        }
         container.addView(view);
         return view;
     }
@@ -67,5 +104,13 @@ public class ImagePagerAdapter extends PagerAdapter {
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
         container.removeView((View) object);
+    }
+
+    public interface OnItemClickListener {
+        void onItemClick();
+    }
+
+    public interface OnItemChildClickListener {
+        boolean onItemChildClick(View v);
     }
 }

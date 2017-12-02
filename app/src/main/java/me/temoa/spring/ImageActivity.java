@@ -1,8 +1,9 @@
 package me.temoa.spring;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -11,26 +12,14 @@ import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
-import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.load.resource.drawable.GlideDrawable;
-import com.bumptech.glide.request.animation.GlideAnimation;
-import com.bumptech.glide.request.target.GlideDrawableImageViewTarget;
 import com.bumptech.glide.request.target.Target;
-import com.github.chrisbanes.photoview.PhotoView;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,8 +27,13 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
 import me.temoa.spring.adapter.ImagePagerAdapter;
-import me.temoa.spring.util.ThemeUtil;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -56,6 +50,10 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
     private static final String EXTRA_NAME_IMAGE_LIST = "image_list";
     private static final String EXTRA_NAME_IMAGE_INDEX = "image_index";
 
+    private static final String[] DIALOG_ITEMS = new String[]{"分享图片", "保存图片"};
+
+    private TextView pageNumber;
+
     private String mCurImageUrl;
     private ArrayList<String> mImageList;
     private int mIndex;
@@ -63,36 +61,37 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (!ThemeUtil.getCurTheme(this)) setTheme(R.style.DayTheme);
-        else setTheme(R.style.NightTheme);
-
         setContentView(R.layout.activity_image);
 
+        getIntentData();
         initViews();
     }
 
-    @SuppressLint("InflateParams")
+    private void getIntentData() {
+        Intent intent = getIntent();
+        mCurImageUrl = intent.getStringExtra(EXTRA_NAME_IMAGE_URL);
+        mImageList = intent.getStringArrayListExtra(EXTRA_NAME_IMAGE_LIST);
+        mIndex = intent.getIntExtra(EXTRA_NAME_IMAGE_INDEX, 0);
+    }
+
     private void initViews() {
-        Toolbar toolbar = (Toolbar) findViewById(R.id.image_toolBar);
-        setSupportActionBar(toolbar);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+        pageNumber = findViewById(R.id.image_pager_number);
+
+        ViewPager viewPager = findViewById(R.id.image_viewPager);
+        ImagePagerAdapter adapter = new ImagePagerAdapter(this);
+        adapter.setItemClickListener(new ImagePagerAdapter.OnItemClickListener() {
             @Override
-            public void onClick(View view) {
-                onBackPressed();
+            public void onItemClick() {
+                finish();
             }
         });
-
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true);
-        }
-
-        mCurImageUrl = getIntent().getStringExtra(EXTRA_NAME_IMAGE_URL);
-        mImageList = getIntent().getStringArrayListExtra(EXTRA_NAME_IMAGE_LIST);
-        mIndex = getIntent().getIntExtra(EXTRA_NAME_IMAGE_INDEX, 0);
-
-        ViewPager viewPager = (ViewPager) findViewById(R.id.image_viewPager);
-        ImagePagerAdapter adapter = new ImagePagerAdapter();
+        adapter.setItemChildClickListener(new ImagePagerAdapter.OnItemChildClickListener() {
+            @Override
+            public boolean onItemChildClick(View v) {
+                showDialog();
+                return true;
+            }
+        });
         adapter.setData(mImageList);
         viewPager.setAdapter(adapter);
         viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
@@ -113,51 +112,57 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
 
             }
         });
-
         viewPager.setCurrentItem(mIndex, false);
         setIndexTitle();
-
-        ImageView downloadIv = (ImageView) findViewById(R.id.image_download);
-        downloadIv.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                preSavePhoto();
-            }
-        });
-
-        ImageView shareIv = (ImageView) findViewById(R.id.image_share);
-        shareIv.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                share();
-            }
-        });
     }
 
     private void setIndexTitle() {
-        setTitle((mIndex + 1) + "/" + mImageList.size());
+        String pageNumberText = (mIndex + 1) + "/" + mImageList.size();
+        pageNumber.setText(pageNumberText);
     }
 
-    private void share() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final File glideFile = Glide.with(MyApp.getInstance())
-                            .load(mCurImageUrl)//
-                            .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)//
-                            .get();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            share(glideFile);
+    private void showDialog() {
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("选择")
+                .setItems(DIALOG_ITEMS, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        switch (which) {
+                            case 0:
+                                share();
+                                break;
+                            case 1:
+                                preSavePhoto();
+                                break;
                         }
-                    });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                    }
+                })
+                .create();
+        dialog.show();
+    }
+
+    public void share() {
+        Observable.create(new ObservableOnSubscribe<File>() {
+            @Override
+            public void subscribe(ObservableEmitter<File> e) throws Exception {
+                File glideFile = Glide.with(MyApp.getInstance())
+                        .load(mCurImageUrl)
+                        .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
+                        .get();
+                e.onNext(glideFile);
+                e.onComplete();
             }
-        }).start();
+        }).subscribeOn(Schedulers.newThread()).observeOn(AndroidSchedulers.mainThread()).subscribe(
+                new Consumer<File>() {
+                    @Override
+                    public void accept(File file) throws Exception {
+                        share(file);
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Toast.makeText(ImageActivity.this, "分享失败，请重试", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private void share(File photoFile) {
@@ -175,88 +180,88 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
     }
 
     @AfterPermissionGranted(RC_EXTERNAL_STORAGE)
-    private void preSavePhoto() {
+    public void preSavePhoto() {
         if (mCurImageUrl == null) return;
         String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
         if (EasyPermissions.hasPermissions(this, perms)) {
             save();
         } else {
-            EasyPermissions.requestPermissions(
-                    this, "保存图片需要获取读取外部存储的权限", RC_EXTERNAL_STORAGE, perms);
+            String noticeText = "保存图片需要获取读取外部存储的权限";
+            EasyPermissions.requestPermissions(this, noticeText, RC_EXTERNAL_STORAGE, perms);
         }
     }
 
     private void save() {
-        new Thread(new Runnable() {
+        Observable.create(new ObservableOnSubscribe<String>() {
             @Override
-            public void run() {
-                try {
-                    File glideFile = Glide
-                            .with(MyApp.getInstance())
-                            .load(mCurImageUrl)
-                            .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
-                            .get();
+            public void subscribe(ObservableEmitter<String> e) throws Exception {
+                File glideFile = Glide
+                        .with(MyApp.getInstance())
+                        .load(mCurImageUrl)
+                        .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
+                        .get();
 
-                    if (glideFile == null) return;
-
-                    final File photoFolder = Environment
-                            .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                            .getAbsoluteFile();
-                    if (!photoFolder.exists()) {
-                        if (!photoFolder.mkdirs()) return;
-                    }
-                    String suffix;
-                    if (mCurImageUrl.contains("png")) {
-                        suffix = ".png";
-                    } else if (mCurImageUrl.contains("gif")) {
-                        suffix = ".gif";
-                    } else {
-                        suffix = ".jpg";
-                    }
-
-                    String photoName = "Spring-" + System.currentTimeMillis() + suffix;
-                    File photoFile = new File(photoFolder, photoName);
-                    FileInputStream fis;
-                    FileOutputStream fos;
-                    fis = new FileInputStream(glideFile);
-                    fos = new FileOutputStream(photoFile);
-
-                    byte[] buffer = new byte[1024];
-                    int length;
-                    while ((length = fis.read(buffer)) > 0) {
-                        fos.write(buffer, 0, length);
-                    }
-                    fis.close();
-                    fos.close();
-
-                    // 通知图库更新
-                    Intent intent = new Intent(
-                            Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                            Uri.parse("file://" + photoFile.getAbsolutePath()));
-                    ImageActivity.this.sendBroadcast(intent);
-
-                    notifySaveResult(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    notifySaveResult(false);
+                if (glideFile == null) {
+                    throw new RuntimeException("download picture failure!");
                 }
+
+                final File photoFolder = Environment
+                        .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                        .getAbsoluteFile();
+                if (!photoFolder.exists()) {
+                    if (!photoFolder.mkdirs()) {
+                        throw new RuntimeException("make picture directory failure!");
+                    }
+                }
+                String suffix;
+                if (mCurImageUrl.contains("png")) {
+                    suffix = ".png";
+                } else if (mCurImageUrl.contains("gif")) {
+                    suffix = ".gif";
+                } else {
+                    suffix = ".jpg";
+                }
+
+                String photoName = "Spring-" + System.currentTimeMillis() + suffix;
+                File photoFile = new File(photoFolder, photoName);
+                FileInputStream fis;
+                FileOutputStream fos;
+                fis = new FileInputStream(glideFile);
+                fos = new FileOutputStream(photoFile);
+
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = fis.read(buffer)) > 0) {
+                    fos.write(buffer, 0, length);
+                }
+                fis.close();
+                fos.close();
+
+                // 通知图库更新
+                Intent intent = new Intent(
+                        Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                        Uri.parse("file://" + photoFile.getAbsolutePath()));
+                ImageActivity.this.sendBroadcast(intent);
+
+                e.onNext("保存成功");
+                e.onComplete();
             }
-        }).start();
+        }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(
+                new Consumer<String>() {
+                    @Override
+                    public void accept(String s) throws Exception {
+                        notifySaveResult(s);
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        notifySaveResult("保存失败");
+                    }
+                });
     }
 
-    private void notifySaveResult(boolean isSucceed) {
-        final String text;
-        if (isSucceed) {
-            text = "保存成功";
-        } else {
-            text = "保存失败";
-        }
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(ImageActivity.this, text, Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void notifySaveResult(String result) {
+        Toast.makeText(ImageActivity.this, result, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -267,9 +272,8 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
 
     @Override
     public void onPermissionsGranted(int requestCode, List<String> perms) {
-        if (requestCode == RC_EXTERNAL_STORAGE) {
-            preSavePhoto();
-        }
+        // 权限全部请求成功的话，EasyPermissions 会调用注解 @AfterPermissionsGranted 的方法
+        // 注意，是全部
     }
 
     @Override

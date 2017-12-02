@@ -38,7 +38,7 @@ android {
         if (variant.buildType.name == "release") {
             variant.mergedFlavor.versionCode = gitVersionCode()
             // 这里去修改release的版本名字
-            variant.mergedFlavor.versionName = "0.0.3.1"
+            variant.mergedFlavor.versionName = "0.0.3.2"
         }
     }
 }
