@@ -26,7 +26,7 @@
 
         <provider
             android:name="android.support.v4.content.FileProvider"
-            android:authorities="me.temoa.spring.fileProvider"
+            android:authorities="${AUTHORITIES}"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

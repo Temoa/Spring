@@ -14,6 +14,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -77,7 +78,7 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
     private void initViews() {
         pageNumber = findViewById(R.id.image_pager_number);
 
-        ViewPager viewPager = findViewById(R.id.image_viewPager);
+        PhotoViewPager viewPager = findViewById(R.id.image_viewPager);
         ImagePagerAdapter adapter = new ImagePagerAdapter(this);
         adapter.setItemClickListener(new ImagePagerAdapter.OnItemClickListener() {
             @Override
@@ -160,6 +161,7 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
                 }, new Consumer<Throwable>() {
                     @Override
                     public void accept(Throwable throwable) throws Exception {
+                        throwable.printStackTrace();
                         Toast.makeText(ImageActivity.this, "分享失败，请重试", Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -169,7 +171,7 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         Intent shareIntent = new Intent();
         Uri imageUri;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            imageUri = FileProvider.getUriForFile(this, "me.temoa.spring.fileProvider", photoFile);
+            imageUri = FileProvider.getUriForFile(this, getString(R.string.authorities), photoFile);
         } else {
             imageUri = Uri.fromFile(photoFile);
         }
