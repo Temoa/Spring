@@ -3,7 +3,6 @@ package me.temoa.spring.network;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 import me.temoa.spring.bean.Gank;

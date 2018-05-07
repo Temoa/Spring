@@ -1,5 +1,7 @@
 package me.temoa.spring.network;
 
+import android.support.annotation.NonNull;
+
 import java.io.IOException;
 
 import okhttp3.Interceptor;
@@ -14,7 +16,7 @@ import okhttp3.Response;
 public class HeaderInterceptor implements Interceptor {
 
     @Override
-    public Response intercept(Chain chain) throws IOException {
+    public Response intercept(@NonNull Chain chain) throws IOException {
         Request original = chain.request();
         Request request = original.newBuilder()
                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +

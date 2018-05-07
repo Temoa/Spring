@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="1dp"
@@ -11,7 +11,8 @@
         android:layout_width="match_parent"
         android:layout_height="220dp"
         android:scaleType="centerCrop"
-        android:transitionName="image"/>
+        android:transitionName="image"
+        tools:ignore="ContentDescription" />
 
     <ImageView
         android:id="@+id/item_main_gif_iv"
@@ -21,5 +22,6 @@
         android:layout_margin="4dp"
         android:background="@drawable/shape_image_download_bg"
         android:scaleType="centerCrop"
-        android:src="@drawable/ic_image_gif_24dp"/>
+        android:src="@drawable/ic_image_gif_24dp"
+        tools:ignore="ContentDescription" />
 </FrameLayout>

@@ -1,6 +1,7 @@
 package me.temoa.spring;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -14,13 +15,11 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.target.Target;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,6 +34,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import me.temoa.spring.adapter.ImagePagerAdapter;
+import me.temoa.spring.widget.PhotoViewPager;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.AppSettingsDialog;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -141,26 +141,31 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         dialog.show();
     }
 
+    @SuppressLint("CheckResult")
     public void share() {
-        Observable.create(new ObservableOnSubscribe<File>() {
-            @Override
-            public void subscribe(ObservableEmitter<File> e) throws Exception {
-                File glideFile = Glide.with(MyApp.getInstance())
-                        .load(mCurImageUrl)
-                        .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
-                        .get();
-                e.onNext(glideFile);
-                e.onComplete();
-            }
-        }).subscribeOn(Schedulers.newThread()).observeOn(AndroidSchedulers.mainThread()).subscribe(
-                new Consumer<File>() {
+        Observable
+                .create(new ObservableOnSubscribe<File>() {
                     @Override
-                    public void accept(File file) throws Exception {
+                    public void subscribe(ObservableEmitter<File> e) throws Exception {
+                        File glideFile = Glide.with(MyApp.getInstance())
+                                .asFile()
+                                .load(mCurImageUrl)
+                                .submit()
+                                .get();
+                        e.onNext(glideFile);
+                        e.onComplete();
+                    }
+                })
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<File>() {
+                    @Override
+                    public void accept(File file) {
                         share(file);
                     }
                 }, new Consumer<Throwable>() {
                     @Override
-                    public void accept(Throwable throwable) throws Exception {
+                    public void accept(Throwable throwable) {
                         throwable.printStackTrace();
                         Toast.makeText(ImageActivity.this, "分享失败，请重试", Toast.LENGTH_SHORT).show();
                     }
@@ -193,70 +198,74 @@ public class ImageActivity extends AppCompatActivity implements EasyPermissions.
         }
     }
 
+    @SuppressLint("CheckResult")
     private void save() {
-        Observable.create(new ObservableOnSubscribe<String>() {
-            @Override
-            public void subscribe(ObservableEmitter<String> e) throws Exception {
-                File glideFile = Glide
-                        .with(MyApp.getInstance())
-                        .load(mCurImageUrl)
-                        .downloadOnly(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
-                        .get();
-
-                if (glideFile == null) {
-                    throw new RuntimeException("download picture failure!");
-                }
-
-                final File photoFolder = Environment
-                        .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                        .getAbsoluteFile();
-                if (!photoFolder.exists()) {
-                    if (!photoFolder.mkdirs()) {
-                        throw new RuntimeException("make picture directory failure!");
-                    }
-                }
-                String suffix;
-                if (mCurImageUrl.contains("png")) {
-                    suffix = ".png";
-                } else if (mCurImageUrl.contains("gif")) {
-                    suffix = ".gif";
-                } else {
-                    suffix = ".jpg";
-                }
-
-                String photoName = "Spring-" + System.currentTimeMillis() + suffix;
-                File photoFile = new File(photoFolder, photoName);
-                FileInputStream fis;
-                FileOutputStream fos;
-                fis = new FileInputStream(glideFile);
-                fos = new FileOutputStream(photoFile);
-
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = fis.read(buffer)) > 0) {
-                    fos.write(buffer, 0, length);
-                }
-                fis.close();
-                fos.close();
-
-                // 通知图库更新
-                Intent intent = new Intent(
-                        Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                        Uri.parse("file://" + photoFile.getAbsolutePath()));
-                ImageActivity.this.sendBroadcast(intent);
-
-                e.onNext("保存成功");
-                e.onComplete();
-            }
-        }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(
-                new Consumer<String>() {
+        Observable
+                .create(new ObservableOnSubscribe<String>() {
                     @Override
-                    public void accept(String s) throws Exception {
+                    public void subscribe(ObservableEmitter<String> e) throws Exception {
+                        File glideFile = Glide.with(MyApp.getInstance())
+                                .asFile()
+                                .load(mCurImageUrl)
+                                .submit()
+                                .get();
+
+                        if (glideFile == null) {
+                            throw new RuntimeException("download picture failure!");
+                        }
+
+                        final File photoFolder = Environment
+                                .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                                .getAbsoluteFile();
+                        if (!photoFolder.exists()) {
+                            if (!photoFolder.mkdirs()) {
+                                throw new RuntimeException("make picture directory failure!");
+                            }
+                        }
+                        String suffix;
+                        if (mCurImageUrl.contains("png")) {
+                            suffix = ".png";
+                        } else if (mCurImageUrl.contains("gif")) {
+                            suffix = ".gif";
+                        } else {
+                            suffix = ".jpg";
+                        }
+
+                        String photoName = "Spring-" + System.currentTimeMillis() + suffix;
+                        File photoFile = new File(photoFolder, photoName);
+                        FileInputStream fis;
+                        FileOutputStream fos;
+                        fis = new FileInputStream(glideFile);
+                        fos = new FileOutputStream(photoFile);
+
+                        byte[] buffer = new byte[1024];
+                        int length;
+                        while ((length = fis.read(buffer)) > 0) {
+                            fos.write(buffer, 0, length);
+                        }
+                        fis.close();
+                        fos.close();
+
+                        // 通知图库更新
+                        Intent intent = new Intent(
+                                Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                                Uri.parse("file://" + photoFile.getAbsolutePath()));
+                        ImageActivity.this.sendBroadcast(intent);
+
+                        e.onNext("保存成功");
+                        e.onComplete();
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<String>() {
+                    @Override
+                    public void accept(String s) {
                         notifySaveResult(s);
                     }
                 }, new Consumer<Throwable>() {
                     @Override
-                    public void accept(Throwable throwable) throws Exception {
+                    public void accept(Throwable throwable) {
                         notifySaveResult("保存失败");
                     }
                 });

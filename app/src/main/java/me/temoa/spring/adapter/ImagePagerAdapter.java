@@ -2,29 +2,17 @@ package me.temoa.spring.adapter;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v4.view.PagerAdapter;
-import android.support.v4.view.ViewCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.load.resource.drawable.GlideDrawable;
-import com.bumptech.glide.request.animation.GlideAnimation;
-import com.bumptech.glide.request.target.GlideDrawableImageViewTarget;
-import com.github.chrisbanes.photoview.PhotoView;
-
-import java.lang.ref.WeakReference;
 import java.util.List;
 
+import me.temoa.spring.widget.GlideImageView;
 import me.temoa.spring.R;
-import me.temoa.spring.network.image.ProgressModelLoader;
 
 /**
  * Created by Temoa
@@ -33,8 +21,7 @@ import me.temoa.spring.network.image.ProgressModelLoader;
 
 public class ImagePagerAdapter extends PagerAdapter {
 
-    private Context mContext;
-    private LayoutInflater mLayoutInflater;
+    private final LayoutInflater mLayoutInflater;
     private List<String> mItems;
     private OnItemClickListener mItemClickListener;
     private OnItemChildClickListener mItemChildClickListener;
@@ -52,7 +39,6 @@ public class ImagePagerAdapter extends PagerAdapter {
     }
 
     public ImagePagerAdapter(Context context) {
-        mContext = context;
         mLayoutInflater = LayoutInflater.from(context);
     }
 
@@ -62,36 +48,19 @@ public class ImagePagerAdapter extends PagerAdapter {
     }
 
     @Override
-    public boolean isViewFromObject(View view, Object object) {
+    public boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
         return view == object;
     }
 
+    @NonNull
     @Override
     @SuppressLint("InflateParams")
-    public Object instantiateItem(ViewGroup container, int position) {
+    public Object instantiateItem(@NonNull ViewGroup container, int position) {
         FrameLayout view = (FrameLayout) mLayoutInflater.inflate(R.layout.item_view_pager, null);
-        final PhotoView photoView = view.findViewById(R.id.image_item_photoView);
-        ViewCompat.setTransitionName(photoView, mItems.get(position));
-        final ProgressBar progressBar = view.findViewById(R.id.image_item_progressBar);
-        final TextView progressTv = view.findViewById(R.id.image_item_progress);
-        progressTv.setText("0%");
-        Glide.with(mContext)
-                .using(new ProgressModelLoader(new ProgressHandler(progressTv)))
-                .load(mItems.get(position))
-                .thumbnail(0.1F)
-                .dontAnimate()
-                .diskCacheStrategy(DiskCacheStrategy.SOURCE)
-                .into(new GlideDrawableImageViewTarget(photoView) {
-                    @Override
-                    public void onResourceReady(GlideDrawable resource,
-                                                GlideAnimation<? super GlideDrawable> animation) {
-                        super.onResourceReady(resource, animation);
-                        progressBar.setVisibility(View.GONE);
-                        progressTv.setVisibility(View.GONE);
-                    }
-                });
+        final GlideImageView iv = view.findViewById(R.id.image_item_photoView);
+        iv.load(mItems.get(position));
         if (mItemClickListener != null) {
-            photoView.setOnClickListener(new View.OnClickListener() {
+            iv.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     mItemClickListener.onItemClick();
@@ -99,7 +68,7 @@ public class ImagePagerAdapter extends PagerAdapter {
             });
         }
         if (mItemChildClickListener != null) {
-            photoView.setOnLongClickListener(new View.OnLongClickListener() {
+            iv.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
                     return mItemChildClickListener.onItemChildClick(v);
@@ -111,7 +80,7 @@ public class ImagePagerAdapter extends PagerAdapter {
     }
 
     @Override
-    public void destroyItem(ViewGroup container, int position, Object object) {
+    public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
         container.removeView((View) object);
     }
 
@@ -121,25 +90,5 @@ public class ImagePagerAdapter extends PagerAdapter {
 
     public interface OnItemChildClickListener {
         boolean onItemChildClick(View v);
-    }
-
-    private static class ProgressHandler extends Handler {
-
-        private WeakReference<TextView> mWeakReference;
-
-        ProgressHandler(TextView progressTv) {
-            mWeakReference = new WeakReference<>(progressTv);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.what == 1) {
-                TextView progress = mWeakReference.get();
-                if (progress != null) {
-                    String progressStr = msg.arg1 + "%";
-                    progress.setText(progressStr);
-                }
-            }
-        }
     }
 }

@@ -1,4 +1,4 @@
-package me.temoa.spring;
+package me.temoa.spring.widget;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -8,11 +8,12 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.widget.ViewDragHelper;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+
+import me.temoa.spring.R;
 
 /**
  * Created by Temoa
@@ -41,7 +42,7 @@ public class DragFrameLayout extends FrameLayout {
                 .setBackgroundColor(getResources().getColor(R.color.background_night));
         mDragHelper = ViewDragHelper.create(this, 1.F, new ViewDragHelper.Callback() {
             @Override
-            public boolean tryCaptureView(View child, int pointerId) {
+            public boolean tryCaptureView(@NonNull View child, int pointerId) {
                 return child instanceof ImageView;
             }
 
@@ -49,7 +50,7 @@ public class DragFrameLayout extends FrameLayout {
             boolean mNeedRelease;
 
             @Override
-            public int clampViewPositionVertical(View child, int top, int dy) {
+            public int clampViewPositionVertical(@NonNull View child, int top, int dy) {
                 if (mNeedDrag) {
                     return top;
                 }
@@ -62,12 +63,12 @@ public class DragFrameLayout extends FrameLayout {
             }
 
             @Override
-            public int clampViewPositionHorizontal(View child, int left, int dx) {
+            public int clampViewPositionHorizontal(@NonNull View child, int left, int dx) {
                 return mNeedDrag ? left : 0;
             }
 
             @Override
-            public void onViewPositionChanged(View changedView, int left, int top, int dx, int dy) {
+            public void onViewPositionChanged(@NonNull View changedView, int left, int top, int dx, int dy) {
                 super.onViewPositionChanged(changedView, left, top, dx, dy);
                 mNeedRelease = top > getHeight() * 0.25;
 
@@ -75,7 +76,7 @@ public class DragFrameLayout extends FrameLayout {
                 if (getContext() instanceof Activity) {
                     int alpha = Math.min((int) (255 * present), 255);
                     ((Activity) getContext()).getWindow().getDecorView()
-                            .setBackgroundColor(Color.argb(alpha, 0, 0, 0));
+                            .setBackgroundColor(Color.argb(alpha, 63, 63, 63));
                 }
 
                 float maxScale = Math.min(present, 1.F);
@@ -86,7 +87,7 @@ public class DragFrameLayout extends FrameLayout {
             }
 
             @Override
-            public void onViewReleased(View releasedChild, float xvel, float yvel) {
+            public void onViewReleased(@NonNull View releasedChild, float xvel, float yvel) {
                 super.onViewReleased(releasedChild, xvel, yvel);
                 if (mNeedRelease) {
                     if (getContext() instanceof Activity) {
@@ -102,7 +103,7 @@ public class DragFrameLayout extends FrameLayout {
             }
 
             @Override
-            public int getViewVerticalDragRange(View child) {
+            public int getViewVerticalDragRange(@NonNull View child) {
                 return getHeight() / 2;
             }
         });

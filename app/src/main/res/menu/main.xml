@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <item
         android:id="@+id/action_gate"
         android:orderInCategory="99"
         android:title="打开一扇门"
-        app:showAsAction="never"/>
+        app:showAsAction="never"
+        tools:ignore="HardcodedText" />
     <item
         android:id="@+id/action_night"
         android:orderInCategory="99"
         android:title="夜间模式"
-        app:showAsAction="never"/>
+        app:showAsAction="never"
+        tools:ignore="HardcodedText" />
 
 </menu>

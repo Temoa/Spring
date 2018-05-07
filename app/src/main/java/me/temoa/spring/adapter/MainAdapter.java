@@ -1,6 +1,7 @@
 package me.temoa.spring.adapter;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -9,12 +10,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import com.bumptech.glide.Glide;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import me.temoa.spring.R;
+import me.temoa.spring.network.image.GlideApp;
 
 /**
  * Created by Lai
@@ -23,9 +23,9 @@ import me.temoa.spring.R;
 
 public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
 
-    private Context mContext;
+    private final Context mContext;
     private List<String> mItems;
-    private LayoutInflater mLayoutInflater;
+    private final LayoutInflater mLayoutInflater;
 
     private OnItemClickListener mItemClickListener;
     private OnLoadMoreListener mLoadMoreListener;
@@ -39,22 +39,23 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
         mItems = items;
     }
 
+    @NonNull
     @Override
-    public ListHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ListHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View itemView = mLayoutInflater.inflate(R.layout.item_mian, parent, false);
         return new ListHolder(itemView);
     }
 
     @Override
-    public void onBindViewHolder(final ListHolder holder, int position) {
+    public void onBindViewHolder(@NonNull final ListHolder holder, int position) {
         if (mItems.get(position).contains("gif")) {
             holder.gifIv.setVisibility(View.VISIBLE);
         } else {
             holder.gifIv.setVisibility(View.GONE);
         }
-        Glide.with(mContext)
-                .load(mItems.get(position))
+        GlideApp.with(mContext)
                 .asBitmap()
+                .load(mItems.get(position))
                 .dontAnimate()
                 .into(holder.iv);
         holder.itemView.setOnClickListener(new View.OnClickListener() {
@@ -75,7 +76,7 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
     }
 
     @Override
-    public void onAttachedToRecyclerView(RecyclerView recyclerView) {
+    public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onAttachedToRecyclerView(recyclerView);
         if (!isOpenLoad) return;
         final RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
@@ -153,8 +154,8 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ListHolder> {
 
     class ListHolder extends RecyclerView.ViewHolder {
 
-        private ImageView iv;
-        private ImageView gifIv;
+        private final ImageView iv;
+        private final ImageView gifIv;
 
         ListHolder(View itemView) {
             super(itemView);
